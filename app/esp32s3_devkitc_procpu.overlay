@@ -1,0 +1,85 @@
+/ {
+	chosen {
+		zephyr,console    = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+	};
+
+	aliases {
+		led0 = &power_led;
+		sw0  = &boot_button;
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		boot_button: button_0 {
+			gpios = <&gpio0 0 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "BOOT Button";
+		};
+	};
+
+	adc_keys: adc-keys {
+		compatible = "adc-keys";
+		io-channels = <&adc0 0>;
+		keyup-threshold-mv = <3300>;
+		sample-period-ms = <50>;
+
+		menu_key: key_menu {
+			press-thresholds-mv = <2800>;
+			zephyr,code = <INPUT_KEY_MENU>;
+		};
+		play_key: key_play {
+			press-thresholds-mv = <1920>;
+			zephyr,code = <INPUT_KEY_PLAY>;
+		};
+		up_key: key_up {
+			press-thresholds-mv = <350>;
+			zephyr,code = <INPUT_KEY_UP>;
+		};
+		down_key: key_down {
+			press-thresholds-mv = <800>;
+			zephyr,code = <INPUT_KEY_DOWN>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		power_led: led_0 {
+			/* GPIO3 must be open-drain — driving high will burn the LED */
+			gpios = <&gpio0 3 GPIO_OPEN_DRAIN>;
+			label = "Power LED";
+		};
+	};
+};
+
+&adc0 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/* GPIO1 = ADC1_CH0 — resistor ladder for function keys */
+	channel@0 {
+		reg = <0>;
+		zephyr,gain             = "ADC_GAIN_1_4";
+		zephyr,reference        = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,resolution       = <12>;
+	};
+};
+
+&uart0 {
+	status = "disabled";
+};
+
+&usb_serial {
+	status = "okay";
+};
+
+&wifi {
+    status = "okay";
+};
+
+zephyr_udc0: &usb_otg {
+	status = "okay";
+};
+
+

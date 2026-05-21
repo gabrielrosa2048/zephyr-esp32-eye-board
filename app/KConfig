@@ -1,0 +1,6 @@
+mainmenu "Network Wi-Fi apsta_mode application"
+
+config WIFI_SAMPLE_SSID "Apto_1404"
+config WIFI_SAMPLE_PSK  "zurick1140"
+
+source "Kconfig.zephyr"
