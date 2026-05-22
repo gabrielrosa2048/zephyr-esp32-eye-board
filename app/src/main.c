@@ -3,9 +3,7 @@
 #include <zephyr/input/input.h>
 #include <zephyr/logging/log.h>
 
-#include "lib/led/led.h"
-
-#include "wifi.h"
+#include "led.h"
 
 static void on_key_event(struct input_event *evt, void *user_data);
 

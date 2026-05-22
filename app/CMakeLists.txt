@@ -6,13 +6,15 @@ project(zephyr-esp32-eye-board)
 
 target_sources(app PRIVATE
     
+    src/display.c
+    src/events.c
+    src/led.c
     src/main.c
+    src/msgq.c
+    src/sntp.c
     src/wifi.c
-
-    src/lib/led/led.c
 )
 
 target_include_directories(app PRIVATE
-    
-    src/lib/led
+
 )
