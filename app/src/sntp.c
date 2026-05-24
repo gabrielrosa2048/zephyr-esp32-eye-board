@@ -44,7 +44,7 @@ void sntp_sync_time(void){
 
     k_event_post(&app_events, EVENT_SNTP_SYNCED);
 
-    char time_str[32];
+    char time_str[72];
     snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d %02d/%02d/%04d", tm_info.tm_hour, tm_info.tm_min, tm_info.tm_sec, tm_info.tm_mday, tm_info.tm_mon + 1, tm_info.tm_year + 1900);
     
     LOG_INF("Sntp synchronized: %s", time_str);    

@@ -78,6 +78,7 @@ static void ipv4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt
 
         k_msgq_put(&wifi_msgq, &msg, K_NO_WAIT);
             
+        k_msleep(100);
         sntp_sync_time();
     }
 }
@@ -125,4 +126,23 @@ void wifi_thread(){
     }
 }
 
-K_THREAD_DEFINE(wifi_tid, 8192, wifi_thread, NULL, NULL, NULL, 7, 0, 0); 
+static Z_KERNEL_STACK_DEFINE_IN(wifi_stack, 4096, __attribute__((section(".ext_ram.bss"))));
+
+static struct k_thread wifi_thread_data;
+k_tid_t wifi_tid;
+
+static int wifi_thread_init(void){
+    
+    wifi_tid = k_thread_create(
+        &wifi_thread_data,
+        wifi_stack,
+        K_THREAD_STACK_SIZEOF(wifi_stack),
+        wifi_thread,
+        NULL, NULL, NULL,
+        7, 0, K_NO_WAIT
+    );
+    k_thread_name_set(wifi_tid, "wifi_tid");
+    return 0;
+}
+
+SYS_INIT(wifi_thread_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

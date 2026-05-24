@@ -1,18 +1,20 @@
-#include "display.h"
-
 #include <zephyr/drivers/display.h>
 #include <zephyr/logging/log.h>
 #include <lvgl.h>
 
+#include "camera.h"
 #include "events.h"
 #include "msgq.h"
 #include "sntp.h"
 
 LOG_MODULE_REGISTER(display, LOG_LEVEL_INF);
 
+static uint8_t __attribute__((section(".ext_ram.bss"), aligned(CONFIG_VIDEO_BUFFER_POOL_ALIGN))) canvas_buf[CAM_WIDTH * CAM_HEIGHT * 2];
+
 static const struct device *display;
 static struct display_capabilities caps;
 
+static lv_obj_t *canvas;
 static lv_obj_t *status_bar;
 static lv_obj_t *time_label;
 static lv_obj_t *wifi_icon;
@@ -27,6 +29,8 @@ static void ui_set_time(uint8_t hour, uint8_t minute, uint8_t second);
 static void timer_update_handler(struct k_timer *timer);
 
 void display_thread(){
+
+    struct frame_msg msg;
 
     ui_init();
     
@@ -47,6 +51,25 @@ void display_thread(){
             k_event_clear(&app_events, EVENT_TIME_UPDATE);
         }
 
+        if (!k_msgq_get(&frame_queue, &msg, K_NO_WAIT)) {
+
+            LOG_INF("Camera frame received: %u bytes", msg.size);
+
+            /* Cria canvas uma única vez */
+            if (canvas == NULL) {
+                canvas = lv_canvas_create(lv_scr_act());
+                lv_canvas_set_buffer(canvas, canvas_buf,
+                                    CAM_WIDTH, CAM_HEIGHT,
+                                    LV_COLOR_FORMAT_RGB565);
+                lv_obj_align_to(canvas, status_bar, LV_ALIGN_OUT_BOTTOM_MID, 0,
+                (216 - CAM_HEIGHT) / 2);  /* centraliza no espaço restante */
+            }
+
+            memcpy(canvas_buf, msg.data, msg.size);
+            lv_obj_invalidate(canvas);
+            
+        }
+
         lv_task_handler();        
 
         k_msleep(10);
@@ -65,7 +88,7 @@ static void ui_init(){
 
     display_get_capabilities(display, &caps);
     
-    LOG_INF("Display: %s", display->name);
+    LOG_INF("Device name: %s", display->name);
     LOG_INF("Resolution: %dx%d", caps.x_resolution, caps.y_resolution);
 
     display_blanking_off(display);
@@ -143,5 +166,23 @@ static void timer_update_handler(struct k_timer *timer){
     k_event_post(&app_events, EVENT_TIME_UPDATE);
 }
 
+static Z_KERNEL_STACK_DEFINE_IN(display_stack, 8192, __attribute__((section(".ext_ram.bss"))));
 
-K_THREAD_DEFINE(display_tid, 8192, display_thread, NULL, NULL, NULL, 8, 0, 0); 
+static struct k_thread display_thread_data;
+k_tid_t display_tid;
+
+static int display_thread_init(void){
+    
+    display_tid = k_thread_create(
+        &display_thread_data,
+        display_stack,
+        K_THREAD_STACK_SIZEOF(display_stack),
+        display_thread,
+        NULL, NULL, NULL,
+        8, 0, K_NO_WAIT
+    );
+    k_thread_name_set(display_tid, "display_tid");
+    return 0;
+}
+
+SYS_INIT(display_thread_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

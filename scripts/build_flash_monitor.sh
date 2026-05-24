@@ -13,19 +13,19 @@ source "${WEST_ROOT}/.venv/bin/activate"
 case "${1:-all}" in
   build)
     rm -rf "${BUILD_DIR}"
-    west build -b "${BOARD}" -d "${BUILD_DIR}" "${APP_DIR}"
+    west build -b "${BOARD}" -d "${BUILD_DIR}" "${APP_DIR}" --pristine 
     ;;
   flash)
     west flash -d "${BUILD_DIR}"
     ;;
   monitor)
-    west espressif monitor -d "${BUILD_DIR}"
+    (cd "${BUILD_DIR}" && west espressif monitor)
     ;;
   all)
     rm -rf "${BUILD_DIR}"
     west build -b "${BOARD}" -d "${BUILD_DIR}" "${APP_DIR}"
     west flash -d "${BUILD_DIR}"
-    west espressif monitor
+    (cd "${BUILD_DIR}" && west espressif monitor)
     ;;
   *)
     echo "Uso: $0 [build|flash|monitor|all]"

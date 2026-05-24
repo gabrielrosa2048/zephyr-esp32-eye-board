@@ -3,6 +3,7 @@
 #include <zephyr/dt-bindings/adc/adc.h>
 #include <zephyr/dt-bindings/mipi_dbi/mipi_dbi.h>
 #include <zephyr/dt-bindings/display/panel.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
 #include <dt-bindings/pinctrl/esp32s3-pinctrl.h>
 
 / {
@@ -22,6 +23,7 @@
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &slot0_partition;
 		zephyr,display = &st7789v;
+		zephyr,camera = &lcd_cam_dvp;
 	};
 
 
@@ -102,35 +104,6 @@
 	};
 };
 
-&pinctrl {
-    spim3_default: spim3_default {
-        group1 {
-            pinmux = <SPIM3_SCLK_GPIO21>,
-                     <SPIM3_CSEL_GPIO44>;
-        };
-        group2 {
-            pinmux = <SPIM3_MOSI_GPIO47>;
-            output-low;
-        };
-    };
-};
-
-&gpio0 { 
-	status = "okay"; 
-};  
-
-&gpio1 { 
-	status = "okay"; 
-};  
-
-&spi3 {                        
-    status = "okay";
-    #address-cells = <1>;
-    #size-cells = <0>;
-    pinctrl-0 = <&spim3_default>;
-    pinctrl-names = "default";
-};
-
 &adc0 {
 	status = "okay";
 	#address-cells = <1>;
@@ -148,6 +121,121 @@
 
 &dma {
 	status = "okay";
+};
+
+&gpio0 { 
+	status = "okay"; 
+};  
+
+&gpio1 { 
+	status = "okay"; 
+};  
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c1_default>;
+	pinctrl-names = "default";
+
+	ov2640: ov2640@30 {
+		compatible = "ovti,ov2640";
+		reg = <0x30>;
+		status = "okay";
+		clock-rate-control = <0x80>;
+
+		port {
+			ov2640_ep_out: endpoint {
+				remote-endpoint = <&dvp_ep_in>;
+			};
+		};
+	};
+};
+
+&lcd_cam {
+	status = "okay";
+	pinctrl-0 = <&lcd_cam_default>;
+	pinctrl-names = "default";
+};
+
+&lcd_cam_dvp {
+	status = "okay";
+	cam-clk = <10000000>;
+	source = <&ov2640>;
+
+	port {
+		dvp_ep_in: endpoint {
+			remote-endpoint = <&ov2640_ep_out>;
+		};
+	};
+};
+
+&pinctrl {
+	i2c1_default: i2c1_default {
+		group1 {
+			pinmux = <I2C1_SDA_GPIO4>,
+				 <I2C1_SCL_GPIO5>;
+			bias-pull-up;
+			drive-open-drain;
+			output-high;
+		};
+	};
+
+	spim3_default: spim3_default {
+		group1 {
+			pinmux = <SPIM3_SCLK_GPIO21>,
+				 <SPIM3_CSEL_GPIO44>;
+		};
+
+		group2 {
+			pinmux = <SPIM3_MOSI_GPIO47>;
+			output-low;
+		};
+	};
+
+	lcd_cam_default: lcd_cam_default {
+		group1 {
+			pinmux = <LCD_CAM_CAM_CLK_GPIO15>;
+			output-enable;
+		};
+
+		group2 {
+			pinmux = <LCD_CAM_V_SYNC_CAM_GPIO6>,
+				 <LCD_CAM_H_ENABLE_CAM_GPIO7>,
+				 <LCD_CAM_CAM_PCLK_GPIO13>,
+				 <LCD_CAM_DATA_IN0_GPIO11>,
+				 <LCD_CAM_DATA_IN1_GPIO9>,
+				 <LCD_CAM_DATA_IN2_GPIO8>,
+				 <LCD_CAM_DATA_IN3_GPIO10>,
+				 <LCD_CAM_DATA_IN4_GPIO12>,
+				 <LCD_CAM_DATA_IN5_GPIO18>,
+				 <LCD_CAM_DATA_IN6_GPIO17>,
+				 <LCD_CAM_DATA_IN7_GPIO16>;
+			input-enable;
+			bias-disable;
+		};
+	};
+
+	sdhc0_default: sdhc0_default {
+		group1 {
+			pinmux = <SDHC0_CMD_GPIO38>,
+				 <SDHC0_CLKOUT_GPIO39>,
+				 <SDHC0_DATA0_GPIO40>;
+			bias-pull-up;
+			output-high;
+		};
+	};
+};
+
+&psram0 {
+  size = <DT_SIZE_M(8)>;
+};
+
+&spi3 {                        
+    status = "okay";
+    #address-cells = <1>;
+    #size-cells = <0>;
+    pinctrl-0 = <&spim3_default>;
+    pinctrl-names = "default";
 };
 
 &uart0 {

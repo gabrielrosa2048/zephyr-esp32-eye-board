@@ -6,6 +6,7 @@ project(zephyr-esp32-eye-board)
 
 target_sources(app PRIVATE
     
+    src/camera.c
     src/display.c
     src/events.c
     src/led.c
